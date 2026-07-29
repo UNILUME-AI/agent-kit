@@ -1,0 +1,9 @@
+{
+  "name": "unilume-workflow",
+  "version": "0.1.0",
+  "description": "跨仓通用的开发流程约定。当前收录：处理 PR 评审意见的次序与收尾动作（pr-review-response）。",
+  "author": {
+    "name": "UNILUME-AI",
+    "url": "https://github.com/UNILUME-AI"
+  }
+}

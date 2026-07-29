@@ -1,0 +1,17 @@
+{
+  "$schema": "https://anthropic.com/claude-code/marketplace.schema.json",
+  "name": "agent-kit",
+  "description": "UNILUME 跨仓共享的 AI agent 资产。只收录各仓逐字相同、且无仓库特异性的内容。",
+  "owner": {
+    "name": "UNILUME-AI",
+    "url": "https://github.com/UNILUME-AI"
+  },
+  "plugins": [
+    {
+      "name": "unilume-workflow",
+      "description": "跨仓通用的开发流程约定：处理 PR 评审意见的次序与收尾动作。",
+      "source": "./plugins/unilume-workflow",
+      "category": "workflow"
+    }
+  ]
+}
