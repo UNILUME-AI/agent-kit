@@ -11,10 +11,10 @@ name: Claude Code
 # job 因 @claude 过滤被跳过,但 GitHub 仍会为跳过的 job 建 check run,在 PR 上留下一条
 # "claude / claude  Skipped"。该事件的 run 挂在 PR head SHA 上,所以噪音直接进 checks 列表;
 # issue_comment / issues 的 run 挂在默认分支 SHA 上,不进 PR checks,故保留。
-# pull_request_review_comment 同样挂 PR head SHA,但只在有人真写行内评论时触发(频率低),
-# 且它让 claude-code-action 走 createReplyForReviewComment,回复留在同一条 thread 内 ——
-# 处置次序见 AGENTS.md「Resolving review threads」(推修复 → 逐条回复 → 再 resolve),
-# 同处一地免去在 Conversation 与 thread 之间来回对照,值得那点噪音,故保留。
+# pull_request_review_comment 同样挂 PR head SHA,保留它是一个取舍:自动评审带行内意见时
+# 每条意见各触发一次,噪音并未清零(只是不再叠加"提交整份 review"那一次);换来的是
+# claude-code-action 对该事件走 createReplyForReviewComment,@claude 的回复留在同一条 review
+# thread 内,与被回应的意见同处一地,便于改完即就地 resolve。判断是这点闭环值回那点噪音。
 # 代价:不能再在"提交整份 review"的 body 里 @claude;改用 PR 顶层评论或行内评论,能力相同。
 on:
   issue_comment:
@@ -41,7 +41,13 @@ jobs:
     uses: UNILUME-AI/.github/.github/workflows/reusable-claude.yml@b6a2e44e331ce54c1650eb0a90592db981122d84 # main 2026-08-02
     with:
       # allowedTools:CI 无人点确认,凡需确认的工具须显式列出(最小权限,全代理档)。
-      # deny 优先:挡 force-push / rm -rf / 合并 PR(合并是人的决定)/ 动 secrets。
+      #
+      # disallowedTools 按命令拼写匹配,**不是安全边界**,只是把最常见的误操作拦在前面。
+      # 同一动作的其他写法绕得过去,例如 `gh api -X PUT .../pulls/N/merge` 绕过
+      # `gh pr merge`、`git push origin +HEAD:ref` 与 `--mirror` 绕过 `--force`/`-f`。
+      # 真正的边界在 main 的 branch ruleset:non_fast_forward 挡强推、pull_request 挡直推、
+      # deletion 挡删分支、required_status_checks 挡未过门的合并。改这份名单时别把它当护栏,
+      # 该收紧的是 ruleset。
       claude_args: '--model claude-opus-4-8 --max-turns 100 --allowedTools "Read,Edit,Write,Glob,Grep,Bash(git:*),Bash(gh:*),Bash(npm:*),Bash(npx:*),Bash(node:*),mcp__github_inline_comment__create_inline_comment,mcp__github_ci__*" --disallowedTools "Bash(git push --force:*),Bash(git push -f:*),Bash(rm -rf:*),Bash(gh pr merge:*),Bash(gh secret:*)"'
     secrets:
       # 显式传递而非 inherit：reusable 只声明了这一个 secret，最小权限
