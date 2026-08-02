@@ -3,7 +3,10 @@
 UNILUME 跨仓共享的 AI agent 资产，以 Claude Code plugin marketplace 形式分发。
 
 本仓存在的理由是**消除复制**：收录的内容在各业务仓里一份都不存，因此不存在漂移。
-改这里一处，所有消费方下次加载即生效。
+
+生效方式两条路不同，别混：本机 Claude Code 下次 `/plugin update` 即生效；**CI 侧不会自动跟随**——
+`reusable-claude.yml` 把本仓钉在一个 commit SHA 上，改这里不 bump 那个 SHA，@claude 读到的仍是旧内容。
+这是有意的，理由见下面「消费方 · CI 里的 @claude」。
 
 ## 收录判据
 
@@ -38,17 +41,42 @@ UNILUME 跨仓共享的 AI agent 资产，以 Claude Code plugin marketplace 形
 
 ### CI 里的 @claude
 
-在 `UNILUME-AI/.github` 的 `reusable-claude.yml` 里给 `claude-code-action` 加两个输入：
+`UNILUME-AI/.github` 的 `reusable-claude.yml` 先按 SHA 把本仓取到 `RUNNER_TEMP`，再把**本地路径**
+交给 `claude-code-action`：
 
 ```yaml
-plugin_marketplaces: https://github.com/UNILUME-AI/agent-kit.git
-plugins: unilume-workflow@agent-kit
+- name: Fetch shared agent skills (pinned)
+  env:
+    AGENT_KIT_SHA: <40 位 SHA> # main YYYY-MM-DD
+  run: |
+    git init -q "$RUNNER_TEMP/agent-kit"
+    git -C "$RUNNER_TEMP/agent-kit" remote add origin https://github.com/UNILUME-AI/agent-kit.git
+    git -C "$RUNNER_TEMP/agent-kit" fetch -q --depth 1 origin "$AGENT_KIT_SHA"
+    git -C "$RUNNER_TEMP/agent-kit" checkout -q FETCH_HEAD
+
+- uses: anthropics/claude-code-action@<sha>
+  with:
+    plugin_marketplaces: ${{ runner.temp }}/agent-kit
+    plugins: unilume-workflow@agent-kit
 ```
 
-7 个业务仓的 `claude.yml` 都委派到该 reusable，改这一处即全部生效。
+**为什么不直接传 git URL。** action 的 `install-plugins.ts` 只是把输入原样交给
+`claude plugin marketplace add`，对 URL 形式不接受任何 ref/tag（校验正则要求以 `.git` 结尾），
+因此 URL 形式无法钉版本。而本仓的内容会被注入一个持有 `contents: write`、放行
+`Bash(git:*)` / `Bash(gh:*)` 的特权 job——skill 是能左右 agent 行为的文本，引用可变分支
+等于让本仓的任何改动未经消费方评审就进入那个 job。本地路径形式由上一步按 SHA 取好，是不可变的。
 
-本仓当前为私有仓。`actions/checkout` 配置的 git 凭据只对当前仓库生效，
-因此 CI 侧克隆本仓是否需要额外令牌，须以一次真实的 @claude 运行为准。
+**升级步骤**（两步，缺一不可）：
+
+1. 本仓改动合入 main，取新 SHA：`gh api repos/UNILUME-AI/agent-kit/commits/main --jq .sha`
+2. 改 `reusable-claude.yml` 里的 `AGENT_KIT_SHA`（走该仓评审），各业务仓再 bump 自己钉的
+   reusable SHA
+
+16 个业务仓的 `claude.yml` 按 SHA 跨仓引用该 reusable，`.github` 自身走 `./` 本地路径引用。
+
+**令牌问题已结**：本仓为私有仓，曾存疑 CI 侧克隆是否需要额外令牌。2026-08-02 在 platform 上
+三次真实 @claude 运行中，`Fetch shared agent skills` 均在 1 秒内成功，无需额外配置——
+job 默认的 `GITHUB_TOKEN` 对同 org 私有仓的 fetch 是够的。
 
 ## 结构
 
