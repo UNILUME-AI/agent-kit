@@ -74,9 +74,18 @@ UNILUME 跨仓共享的 AI agent 资产，以 Claude Code plugin marketplace 形
 
 16 个业务仓的 `claude.yml` 按 SHA 跨仓引用该 reusable，`.github` 自身走 `./` 本地路径引用。
 
-**令牌问题已结**：本仓为私有仓，曾存疑 CI 侧克隆是否需要额外令牌。2026-08-02 在 platform 上
-三次真实 @claude 运行中，`Fetch shared agent skills` 均在 1 秒内成功，无需额外配置——
-job 默认的 `GITHUB_TOKEN` 对同 org 私有仓的 fetch 是够的。
+**关于凭据**：这一步的 `git fetch` 不需要任何凭据，因为**本仓是 public**
+（`gh api repos/UNILUME-AI/agent-kit --jq .visibility` → `public`）——公开仓匿名即可拉。
+
+README 早先写的「本仓当前为私有仓」是过时事实，由此衍生的那句「是否需要额外令牌须以一次真实
+运行为准」也随之失效：2026-08-02 在 platform 上三次真实 @claude 运行中该步均在 1 秒内成功，
+但那**不能**推论出「`GITHUB_TOKEN` 够用」——`GITHUB_TOKEN` 的权限限于包含该 workflow 的仓库，
+同 org 的其它私有仓也不例外（见 [GITHUB_TOKEN 文档](https://docs.github.com/en/actions/concepts/security/github_token)），
+reusable workflow 里那枚 token 同样按 caller 作用域签发。成功的原因只是本仓公开。
+
+**因此：若将来把本仓转为私有，这一步会立即失败**，届时须为 `git fetch` 提供一枚对本仓有读权限的
+凭据（GitHub App 安装令牌或细粒度 PAT），并在 `reusable-claude.yml` 里以 secret 形式注入。
+转私有前请先改这一步，否则 17 个消费仓的 @claude 会同时断在这里。
 
 ## 结构
 
