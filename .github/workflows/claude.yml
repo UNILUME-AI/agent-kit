@@ -38,7 +38,7 @@ jobs:
       id-token: write
     # 钉死 commit SHA（供应链规则：可变引用 @main 不过 Sonar 门）。升级 reusable 时改此 SHA：
     # gh api repos/UNILUME-AI/.github/commits/main --jq .sha
-    uses: UNILUME-AI/.github/.github/workflows/reusable-claude.yml@b6a2e44e331ce54c1650eb0a90592db981122d84
+    uses: UNILUME-AI/.github/.github/workflows/reusable-claude.yml@74a440344d56bae462bf69edbd85b6d2665c0930
     with:
       # allowedTools:CI 无人点确认,凡需确认的工具须显式列出(最小权限,全代理档)。
       #
