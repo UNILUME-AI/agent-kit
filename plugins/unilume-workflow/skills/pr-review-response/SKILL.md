@@ -41,7 +41,21 @@ review thread 只能经 GraphQL 取得。线程标识形如 `PRRT_...`，与评�
 
 ## 2.5 打标入账本，评估是否熔断（分桶之后、动手修复之前）
 
-固定动作，每轮必做（设计真源：`unilume/review-fuse-breaker-design-2026-08-16.md`）：
+固定动作，每轮必做。
+
+**运行时作用域与真源位置**（评审修正：真源必须对执行环境可达）——本节的语义层只覆盖
+**本机开发会话**（设计 §11：无人值守 CI 不跑长评审循环，硬层另有 pre-push 兜底）：
+
+| 真源 | 位置 |
+|---|---|
+| 设计文档（阈值、窗口、流程） | <https://github.com/UNILUME-AI/scrum/blob/main/governance/review-fuse-breaker-design-2026-08-16.md> |
+| taxonomy（class id 与「设计类」列） | 本机 `~/Documents/unilume-claude-palantir/harness优化/github代码review经验/taxonomy.md` |
+| 账本 schema | 同目录 `templates/round-ledger.md` |
+
+任一真源不可达（目录不存在、链接 404）→ 跳过语义层并在汇报中写明「语义熔断本轮未生效：
+<原因>」——门没跑与门通过必须可区分，不许静默降级。
+
+四步：
 
 1. **打标**：每条发现标三项——`class`（taxonomy.md 的 id，单一真源勿造新值）、
    `form`（判据形态粗桶，只有四个值：文本／运行时／流程／判断）、`severity`
